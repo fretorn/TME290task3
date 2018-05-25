@@ -1,0 +1,3 @@
+#!/bin/bash
+cd /home/fredrik/mytest/opendlv-device-camera-rpicamv2-master/example/
+docker build -f Dockerfile.armhf -t fretorn/opendlv-device-camera-rpicamv2-master-armhf:project . && docker push fretorn/opendlv-device-camera-rpicamv2-master-armhf:project
