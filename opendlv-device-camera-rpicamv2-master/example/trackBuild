@@ -1,5 +1,0 @@
-#!/bin/bash
-cd /home/fredrik/mytest/opendlv-device-camera-rpicamv2-master/example/
-docker build -f Dockerfile.amd64 -t fretorn/opendlv-device-camera-rpicamv2-master-amd64:project .
-
-

@@ -26,6 +26,7 @@
 #include <opencv2/core/core.hpp> //Added this
 #include "cluon-complete.hpp"
 #include "opendlv-standard-message-set.hpp"
+#include <chrono>  // for high_resolution_clock
 
 int32_t main(int32_t argc, char **argv) {
   int32_t retCode{0};
@@ -111,6 +112,9 @@ int32_t main(int32_t argc, char **argv) {
     while (od4.isRunning()) {
       sharedMemory->wait();
 
+      // Record start time
+      auto start = std::chrono::high_resolution_clock::now();
+
       // Make a scaled copy of the original image.
       int32_t const width = 256;
       int32_t const height = 196;
@@ -144,61 +148,46 @@ int32_t main(int32_t argc, char **argv) {
           std::cerr << argv[0] << "Ball position X = "<< v3fCircles[j][0]			// x position of center point of circle
           <<",\tY = "<< v3fCircles[j][1]								// y position of center point of circle
           <<",\tRadius = "<< v3fCircles[j][2]<< "\n";					// radius of circle
-        
-                                
-                                          // draw small green circle at center of object detected
-        cv::circle(imgOriginal,												// draw on original image
-          cv::Point((int)v3fCircles[i][0], (int)v3fCircles[i][1]),		// center point of circle
-          3,																// radius of circle in pixels
-          cv::Scalar(0, 255, 0),											// draw green
-          CV_FILLED);														// thickness
-
-                                          // draw red circle around object detected 
-        cv::circle(imgOriginal,												// draw on original image
-          cv::Point((int)v3fCircles[i][0], (int)v3fCircles[i][1]),		// center point of circle
-          (int)v3fCircles[i][2],											// radius of circle in pixels
-          cv::Scalar(0, 0, 255),											// draw red
-          3);																// thickness
-
         }
         estimatedDetectionAngle = constantAngle + scalarAngle*v3fCircles[j][0]/100;
         estimatedDetectionDistance = constantDistance + scalarDistance/v3fCircles[j][2];
         radius = v3fCircles[j][2];
       }	
 
-      // Make an estimation.
+      // Record end time
+      auto finish = std::chrono::high_resolution_clock::now();
+
+      if (VERBOSE) {
+        std::chrono::duration<double> elapsed = finish - start;
+        std::cout << "Elapsed time: " << elapsed.count() << std::endl;
+      }
       
       if (VERBOSE) {
 
         if (saveImage == 1) { //scaledImage
-          // std::cerr << argv[0] << "Saving scaledImage" << std::endl;
           std::string const FILENAME = std::to_string(i) + ".jpg";
           cv::imwrite(FILENAME, scaledImage);
           i++;
         } else if (saveImage == 2) { //threshImg
-          // std::cerr << argv[0] << "Saving threshImg" << std::endl;
           std::string const FILENAME = std::to_string(i) + ".jpg";
           cv::imwrite(FILENAME, threshImg);
           i++;
         } else if (saveImage == 3) { //hsvImg
-          // std::cerr << argv[0] << "Saving hsvImg" << std::endl;
           std::string const FILENAME = std::to_string(i) + ".jpg";
           cv::imwrite(FILENAME, hsvImg);
           i++;
-        } else if (saveImage == 4) { //With circlesImage
-          // std::cerr << argv[0] << "Saving circlesImage" << std::endl;
-          std::string const FILENAME = std::to_string(i) + ".jpg";
-          cv::imwrite(FILENAME, imgOriginal);
-          i++;
-        } else if (saveImage == 5) {
-          // std::cerr << argv[0] << "Not saving any image" << std::endl;
+        } else if (saveImage == 4) {
+          //Dont save an image
         }
 
-        // std::this_thread::sleep_for(std::chrono::seconds(1));
         std::cerr << argv[0] << "Target angle " << std::setw(6) << estimatedDetectionAngle 
           << " distance " << std::setw(6) << estimatedDetectionDistance
           << " radius " << std::setw(6) << radius
           << std::endl;
+      }
+
+      if (saveImage == 7) { //Delay
+        std::this_thread::sleep_for(std::chrono::seconds(1));
       }
 
       // In the end, send a message that is received by the control logic.

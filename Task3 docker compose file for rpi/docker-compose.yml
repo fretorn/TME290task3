@@ -1,0 +1,50 @@
+version: '2'
+
+services:
+    device-camera-rpicamv2:
+        image: chalmersrevere/opendlv-device-camera-rpicamv2-armhf:v0.0.1
+        network_mode: "host"
+        volumes:
+          - "/dev/shm:/dev/shm"
+        privileged: true
+        ulimits:
+          memlock:
+            soft: 4000000
+            hard: 4000000
+        command: "/usr/bin/opendlv-device-camera-rpicamv2 --cid=111"
+    
+    device-camera-rpicamv2-example:
+        image: fretorn/opendlv-device-camera-rpicamv2-master-armhf:project
+        depends_on:
+          - device-camera-rpicamv2
+        restart: always
+        network_mode: "host"
+        working_dir: /opt/
+        volumes:
+          - "/dev/shm:/dev/shm"
+          - .:/opt/
+        privileged: true
+        ulimits:
+          memlock:
+            soft: 4000000
+            hard: 4000000
+        command: "/usr/bin/example --cid=112 --name=cam0 --traincnn=1 --id=112
+        --width=1280 --height=960 --bpp=24 --verbose=1
+        --lowH=30 --lowS=135 --lowV=25 --highH=105 --highS=245 --highV=100
+        --constantAngle=-1.41 --scalarAngle=1 --constantDistance=0 --scalarDistance=540
+        --saveImage=5
+        --Hough_cannyEdgeThreshold=100 --Hough_centerThreshold=50 --Hough_minRadius=5 --Hough_maxRadius=400
+        --NAMEvariableIsVoid=0 --testVariables=0"
+
+    logic:
+        image: fretorn/opendlv-logic-test-kiwi-armhf:project_task3
+        network_mode: "host"
+        command: "/usr/bin/opendlv-logic-test-kiwi --cid=112 --freq=60
+        --frame-id=0 --speed=0.104 --front=0.8 --rear=0.3
+        --goalDistanceToWall=50 --sideWall=50 --reverseTimeThreshold=1
+        --groundSteering=0.3 --wallSteering=1 --rearMin=-0.3
+        --reverseSpeed=0.42 --Kp_side=0.012
+        --sideDistanceForStraightReverse=0 --frontDistance45=0.5
+        --sideDistance45=50 --forwardTimeAfterReverseLimit=0.8
+        --addAngleAfterReverse=0.1 --id=112
+        --minDistanceToCar=40 --maxDistanceToCar=70"
