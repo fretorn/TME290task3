@@ -20,13 +20,6 @@
 #include <iostream>
 #include <iomanip>
 
-//OpenCV
-// #include "stdafx.h"
-// #include <opencv2/opencv.hpp>
-// #include <iostream>
-// #include <string>
-//
-
 Behavior::Behavior() noexcept:
   m_frontUltrasonicReading{},
   m_rearUltrasonicReading{},
@@ -106,7 +99,6 @@ void Behavior::setRightIr(opendlv::proxy::VoltageReading const &rightIrReading) 
 }
 
 //Added this
-// void Behavior::setAzimuthAngle(opendlv::logic::sensation::Point const &azimuthAngle) noexcept
 void Behavior::setAzimuthAngle(float const &azimuthAngle) noexcept
 {
   std::lock_guard<std::mutex> lock(m_azimuthAngleMutex);
@@ -114,7 +106,6 @@ void Behavior::setAzimuthAngle(float const &azimuthAngle) noexcept
 }
 
 //Added this
-// void Behavior::setDistance(opendlv::logic::sensation::Point const &cameraDistance) noexcept
 void Behavior::setDistance(float const &cameraDistance) noexcept
 {
   std::lock_guard<std::mutex> lock(m_cameraDistanceMutex);
@@ -139,7 +130,8 @@ void Behavior::step(float speed, float front, float rear, float goalDistanceToWa
  float sideWall, float reverseTimeThreshold, float groundSteering, float wallSteering,
   float rearMin, float reverseSpeed, float FREQ, float Kp_side,
    float sideDistanceForStraightReverse,
-    float forwardTimeAfterReverseLimit, float addAngleAfterReverse) noexcept
+    float forwardTimeAfterReverseLimit, float addAngleAfterReverse,
+    float minDistanceToCar, float maxDistanceToCar) noexcept
 {
 
   float dt = 1.0f/FREQ; //Added this
@@ -167,18 +159,7 @@ void Behavior::step(float speed, float front, float rear, float goalDistanceToWa
   float leftDistance = (float) leftDistanceDouble;
   float rightDistance = (float) rightDistanceDouble;
   float pedalPosition = speed;
-
-  // (void)goalDistanceToWall;
-  // (void)rearMin;
-  // (void)Kp_side;
-  
-  std::cout << "m_azimuthAngle behavior " << std::setw(6) << m_azimuthAngle
-            << " m_cameraDistance behavior " << std::setw(6) << m_cameraDistance
-            << std::endl;
-
-  
-  
-
+ 
   if (reverse == 0 && forwardAfterReverse == 0) {
     groundSteeringAngle = 0.05f;
   }
@@ -248,10 +229,25 @@ void Behavior::step(float speed, float front, float rear, float goalDistanceToWa
     pedalPosition = speed; //Go forward
   }
 
+  float distanceToCar = 0.0f;
+  distanceToCar = sideDistanceForStraightReverse + reverseTimeThreshold*m_cameraDistance;
+  float angleToCar = 0.0f;
+  angleToCar = rearMin*m_azimuthAngle;
+
   if (wallSteering > 0.0f) { //Do camera logic
-    pedalPosition = sideDistanceForStraightReverse + //sideDistanceForStraightReverse is constant for pedal
-    reverseTimeThreshold*m_cameraDistance; //reverseTimeThreshold is scaling for pedal
-    groundSteeringAngle = rearMin*m_azimuthAngle; //rearMin is scaling factor for steering
+
+    if (distanceToCar < minDistanceToCar) {
+      pedalPosition = -reverseSpeed;
+      angleToCar = -angleToCar;
+    } else {
+      pedalPosition = speed;
+    }
+
+    if (distanceToCar > maxDistanceToCar) {
+      pedalPosition = speed + 0.2f;
+    }
+
+    groundSteeringAngle = angleToCar; //rearMin is scaling factor for steering
   } else {
     (void)m_azimuthAngle;
     (void)m_cameraDistance;
@@ -261,94 +257,18 @@ void Behavior::step(float speed, float front, float rear, float goalDistanceToWa
     (void)sideDistanceForStraightReverse;
   }
 
+  //Dont crash in the back wall
+  if (rearDistance < rear && pedalPosition < 0.0f) {
+    pedalPosition = 0.0f; //Stop
+  }
 
-
-  // std::string scenario = ""; 
-  
-  // if (frontDistance < front) {
-  //   reverse = 1;
-    
-  // } else if (rearDistance < rear){
-  //   pedalPosition = speed;
-  // }
-
-  // //Avoid 45 degree
-  // if (frontDistance < cameraDetectionAngle) {
-  //   if (leftDistance < cameraDistance) {
-  //     reverse = 1;
-  //   } else if (rightDistance < cameraDistance) {
-  //     reverse = 1;
-  //   }
-  // }
-
-  // groundSteeringAngle = 0.05f;
-
-  // // if (frontDistance < front && (leftDistance >goalDdistanceToWall || rightDistance >goalDdistanceToWall)) {
-  // //   if (leftDistance > rightDistance) {
-  // //     scenario = "turnLeft";
-  // //   } else if (rightDistance > leftDistance){
-  // //     scenario = "turnRight";
-  // //   }
-    
-  // // }
-  // // if (scenario == "turnLeft") {
-  // //   groundSteeringAngle = groundSteering;
-  // // } else {
-  // //   if (scenario == "turnRight") {
-  // //     groundSteeringAngle = -groundSteering;
-  // //   }
-  // // }
-
-  // // if (leftDistance < sideWall) {
-  // //   groundSteeringAngle = groundSteeringAngle - wallSteering;
-  // // } else if (rightDistance < sideWall) {
-  // //   groundSteeringAngle = groundSteeringAngle + wallSteering;
-  // // }
-
-  // groundSteeringAngleLeft = 0.0f;
-  // groundSteeringAngleRight = 0.0f;
-
-  // if (leftDistance < sideWall) {
-  //   // P-controller
-  //   errorLeft = goalDistanceToWall - leftDistance;  
-  //   groundSteeringAngleLeft = Kp_side * errorLeft; // Proportional term
-  // }
-  // if (rightDistance < sideWall) {
-  //   errorRight = goalDistanceToWall - rightDistance;  
-  //   groundSteeringAngleRight = Kp_side * errorRight; // Proportional term
-  // }
-  
-  // groundSteeringAngle = 0.05f -(groundSteeringAngleLeft - groundSteeringAngleRight);
-
-  // //Reverse
-  // if (reverse == 1) {
-  //   reverseTime = reverseTime + dt;
-  //   pedalPosition = -reverseSpeed;
-
-  //   // if (prev_groundSteeringAngle < 0.0f && prev_groundSteeringAngle > 0.0f) {
-  //   //   groundSteeringAngle = groundSteeringAngle;
-  //   // } else {
-  //   //   groundSteeringAngle = -groundSteering; //Turn right
-  //   // }
-    
-
-  //   if (leftDistance < sideDistanceForStraightReverse || rightDistance < sideDistanceForStraightReverse) {
-  //     // groundSteeringAngle = 0.0f; //Reverse straight
-  //   } else if (rightDistance < leftDistance) {
-  //     groundSteeringAngle = -groundSteering; //Turn right
-  //   } else if (leftDistance < rightDistance) {
-  //     groundSteeringAngle = groundSteering; //Turn left
-  //   }
-  // } 
-  
-  // if (reverseTime > reverseTimeThreshold) {
-  //   reverse = 0;
-  //   reverseTime = 0.0f;
-  // }
-
-  // if (rearDistance < rearMin) {
-  //   pedalPosition = speed;
-  // }
+  if (m_cameraDistance > 0.0f) {
+    std::cout << "pedalPosition " << std::setw(6) << pedalPosition
+              << " groundSteeringAngle " << std::setw(6) << m_cameraDistance
+              << " distanceToCar " << std::setw(6) << distanceToCar
+              << " angleToCar " << std::setw(6) << angleToCar
+              << std::endl;
+  }
 
   {
     std::lock_guard<std::mutex> lock1(m_groundSteeringAngleRequestMutex);
@@ -367,7 +287,6 @@ void Behavior::step(float speed, float front, float rear, float goalDistanceToWa
   prev_groundSteeringAngle = groundSteeringAngle;
 }
 
-// TODO: This is a rough estimate, improve by looking into the sensor specifications.
 double Behavior::convertIrVoltageToDistance(float voltage) const noexcept
 {
   double voltageDividerR1 = 1000.0;

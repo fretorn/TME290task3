@@ -48,6 +48,8 @@ int32_t main(int32_t argc, char **argv) {
     float sideDistance45 = std::stof(commandlineArguments["sideDistance45"]);
     float forwardTimeAfterReverseLimit = std::stof(commandlineArguments["forwardTimeAfterReverseLimit"]);
     float addAngleAfterReverse = std::stof(commandlineArguments["addAngleAfterReverse"]);
+    float minDistanceToCar = std::stof(commandlineArguments["minDistanceToCar"]);
+    float maxDistanceToCar = std::stof(commandlineArguments["maxDistanceToCar"]);
 
     // float cameraDetectionAngle = 0.0f;
     // float cameraDistance = 0.0f;
@@ -94,24 +96,26 @@ int32_t main(int32_t argc, char **argv) {
     cluon::OD4Session od4{CID};
     od4.dataTrigger(opendlv::proxy::DistanceReading::ID(), onDistanceReading);
     od4.dataTrigger(opendlv::proxy::VoltageReading::ID(), onVoltageReading);
-    if (ID > 0) {
-      od4.dataTrigger(ID, onCameraEstimation); //From camera
-    } else {
-      od4.dataTrigger(opendlv::logic::sensation::Point::ID(), onCameraEstimation); //From camera
-    }
-    
+    // if (ID > 0) {
+    //   od4.dataTrigger(ID, onCameraEstimation); //From camera
+    // } else {
+    od4.dataTrigger(opendlv::logic::sensation::Point::ID(), onCameraEstimation); //From camera
+    // }
+    (void)ID;
 
     //In here it is decided what the car should do.
     auto atFrequency{[&VERBOSE, &behavior, &od4, &speed, &front, &rear, 
     &goalDistanceToWall, &sideWall, &reverseTimeThreshold, &groundSteering, 
     &wallSteering, &rearMin, &reverseSpeed, &FREQ, &Kp_side, 
     &sideDistanceForStraightReverse,
-    &forwardTimeAfterReverseLimit, &addAngleAfterReverse]() -> bool
+    &forwardTimeAfterReverseLimit, &addAngleAfterReverse,
+    &minDistanceToCar, &maxDistanceToCar]() -> bool
       {
         behavior.step(speed, front, rear, goalDistanceToWall, sideWall, 
         reverseTimeThreshold, groundSteering, wallSteering, rearMin, 
         reverseSpeed, FREQ, Kp_side, sideDistanceForStraightReverse,
-        forwardTimeAfterReverseLimit, addAngleAfterReverse);
+        forwardTimeAfterReverseLimit, addAngleAfterReverse,
+        minDistanceToCar, maxDistanceToCar);
         auto groundSteeringAngleRequest = behavior.getGroundSteeringAngle();
         auto pedalPositionRequest = behavior.getPedalPositionRequest();
         auto frontUltrasonicReading = behavior.getFrontUltrasonic();

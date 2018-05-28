@@ -52,7 +52,8 @@ class Behavior {
   float sideWall, float reverseTimeThreshold, float groundSteering, 
   float wallSteering, float rearMin, float reverseSpeed, float FREQ,
    float Kp_side, float sideDistanceForStraightReverse,
-    float forwardTimeAfterReverseLimit, float addAngleAfterReverse) noexcept;
+    float forwardTimeAfterReverseLimit, float addAngleAfterReverse,
+    float minDistanceToCar, float maxDistanceToCar) noexcept;
 
  private:
   double convertIrVoltageToDistance(float) const noexcept;

@@ -21,15 +21,11 @@
 #include <sstream>
 #include <string>
 #include <thread>
-
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/core/core.hpp> //Added this
-
 #include "cluon-complete.hpp"
 #include "opendlv-standard-message-set.hpp"
-
-// #include "tiny_dnn/tiny_dnn.h"
 
 int32_t main(int32_t argc, char **argv) {
   int32_t retCode{0};
@@ -107,6 +103,7 @@ int32_t main(int32_t argc, char **argv) {
 
     float estimatedDetectionAngle = 0.0f;
     float estimatedDetectionDistance = 0.0f;
+    float radius = 0.0f;
     estimatedDetectionAngle = testVariables;
     estimatedDetectionDistance = testVariables;
 
@@ -130,46 +127,7 @@ int32_t main(int32_t argc, char **argv) {
       }
 
       cv::cvtColor(scaledImage, hsvImg, CV_BGR2HSV); //Convert image to HSV from BGR
-
-      
-
-      if (saveImage == 10) {
-        cv::inRange(hsvImg, cv::Scalar(lowH, lowS, lowV), cv::Scalar(highH, highS, highV), threshImg);
-        std::cerr << argv[0] << "Saving threshImg after Blue,dilate and erode directly after line" << std::endl;
-        std::string const FILENAME = "threshImg" + std::to_string(i) + ".jpg";
-        cv::imwrite(FILENAME, threshImg);
-        i++;
-      } else if (saveImage == 11) {
-        cv::inRange(hsvImg, cv::Scalar(0, 0, 0), cv::Scalar(179, 254, 254), threshImg);
-        std::cerr << argv[0] << "Saving threshImg after Blue,dilate and erode directly after line" << std::endl;
-        std::string const FILENAME = "threshImg" + std::to_string(i) + ".jpg";
-        cv::imwrite(FILENAME, threshImg);
-        i++;
-      } else if (saveImage == 12) {
-        
-        cv::inRange(hsvImg, cv::Scalar((int)lowH, (int)lowS, (int)lowV), cv::Scalar((int)highH, (int)highS, (int)highV), threshImg);
-        std::cerr << argv[0] << "Saving threshImg after Blue,dilate and erode directly after line" << std::endl;
-        std::string const FILENAME = "threshImg" + std::to_string(i) + ".jpg";
-        cv::imwrite(FILENAME, threshImg);
-        i++;
-      } else if (saveImage == 13) {
-        
-        cv::inRange(hsvImg, cv::Scalar((unsigned)lowH, (unsigned)lowS, (unsigned)lowV), cv::Scalar((unsigned)highH, (unsigned)highS, (unsigned)highV), threshImg);
-        std::cerr << argv[0] << "Saving threshImg after Blue,dilate and erode directly after line" << std::endl;
-        std::string const FILENAME = "threshImg" + std::to_string(i) + ".jpg";
-        cv::imwrite(FILENAME, threshImg);
-        i++;
-      } else if (saveImage == 14) {
-        
-        cv::inRange(hsvImg, cv::Scalar((short)lowH, (short)lowS, (short)lowV), cv::Scalar((short)highH, (short)highS, (short)highV), threshImg);
-        std::cerr << argv[0] << "Saving threshImg after Blue,dilate and erode directly after line" << std::endl;
-        std::string const FILENAME = "threshImg" + std::to_string(i) + ".jpg";
-        cv::imwrite(FILENAME, threshImg);
-        i++;
-      } else {
-        cv::inRange(hsvImg, cv::Scalar(lowH, lowS, lowV), cv::Scalar(highH, highS, highV), threshImg);
-      }
-
+      cv::inRange(hsvImg, cv::Scalar(lowH, lowS, lowV), cv::Scalar(highH, highS, highV), threshImg);
       cv::GaussianBlur(threshImg, threshImg, cv::Size(3, 3), 0);			//Blur Effect
       cv::dilate(threshImg, threshImg, 0);								// Dilate Filter Effect
       cv::erode(threshImg, threshImg, 0);									// Erode Filter Effect
@@ -186,7 +144,7 @@ int32_t main(int32_t argc, char **argv) {
           std::cerr << argv[0] << "Ball position X = "<< v3fCircles[j][0]			// x position of center point of circle
           <<",\tY = "<< v3fCircles[j][1]								// y position of center point of circle
           <<",\tRadius = "<< v3fCircles[j][2]<< "\n";					// radius of circle
-        }
+        
                                 
                                           // draw small green circle at center of object detected
         cv::circle(imgOriginal,												// draw on original image
@@ -202,8 +160,10 @@ int32_t main(int32_t argc, char **argv) {
           cv::Scalar(0, 0, 255),											// draw red
           3);																// thickness
 
-        estimatedDetectionAngle = constantAngle + scalarAngle*v3fCircles[j][0];
-        estimatedDetectionDistance = constantDistance + scalarDistance*v3fCircles[j][2];
+        }
+        estimatedDetectionAngle = constantAngle + scalarAngle*v3fCircles[j][0]/100;
+        estimatedDetectionDistance = constantDistance + scalarDistance/v3fCircles[j][2];
+        radius = v3fCircles[j][2];
       }	
 
       // Make an estimation.
@@ -211,32 +171,34 @@ int32_t main(int32_t argc, char **argv) {
       if (VERBOSE) {
 
         if (saveImage == 1) { //scaledImage
-          std::cerr << argv[0] << "Saving scaledImage" << std::endl;
+          // std::cerr << argv[0] << "Saving scaledImage" << std::endl;
           std::string const FILENAME = std::to_string(i) + ".jpg";
           cv::imwrite(FILENAME, scaledImage);
           i++;
         } else if (saveImage == 2) { //threshImg
-          std::cerr << argv[0] << "Saving threshImg" << std::endl;
+          // std::cerr << argv[0] << "Saving threshImg" << std::endl;
           std::string const FILENAME = std::to_string(i) + ".jpg";
           cv::imwrite(FILENAME, threshImg);
           i++;
         } else if (saveImage == 3) { //hsvImg
-          std::cerr << argv[0] << "Saving hsvImg" << std::endl;
+          // std::cerr << argv[0] << "Saving hsvImg" << std::endl;
           std::string const FILENAME = std::to_string(i) + ".jpg";
           cv::imwrite(FILENAME, hsvImg);
           i++;
         } else if (saveImage == 4) { //With circlesImage
-          std::cerr << argv[0] << "Saving circlesImage" << std::endl;
+          // std::cerr << argv[0] << "Saving circlesImage" << std::endl;
           std::string const FILENAME = std::to_string(i) + ".jpg";
           cv::imwrite(FILENAME, imgOriginal);
           i++;
         } else if (saveImage == 5) {
-          std::cerr << argv[0] << "Not saving any image" << std::endl;
+          // std::cerr << argv[0] << "Not saving any image" << std::endl;
         }
 
         // std::this_thread::sleep_for(std::chrono::seconds(1));
-        std::cerr << argv[0] << "The target was found at angle " << estimatedDetectionAngle 
-          << " at distance " << estimatedDetectionDistance << std::endl;
+        std::cerr << argv[0] << "Target angle " << std::setw(6) << estimatedDetectionAngle 
+          << " distance " << std::setw(6) << estimatedDetectionDistance
+          << " radius " << std::setw(6) << radius
+          << std::endl;
       }
 
       // In the end, send a message that is received by the control logic.
